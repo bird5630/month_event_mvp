@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { uploadImageToS3 } from "../utils/s3Uploader";
+import { uploadImageToS3 } from "../utils/s3-util";
 
 function QuizEditor({ data, onChange, index }) {
     const [local, setLocal] = useState(data);

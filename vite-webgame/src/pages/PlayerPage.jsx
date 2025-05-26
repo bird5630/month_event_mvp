@@ -1,77 +1,90 @@
-// src/pages/PlayerPage.jsx
-import { useEffect, useState } from "react";
-import socket from "../utils/socket";
+import React, { useEffect, useState } from 'react';
+import { socket } from '@/socket';
 
-function PlayerPage({ roomId, userName }) {
+const PlayerPage = () => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
-    const [answerSubmitted, setAnswerSubmitted] = useState(false);
-    const [revealedAnswer, setRevealedAnswer] = useState(null);
+    const [selected, setSelected] = useState(null);
+    const [isLocked, setIsLocked] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
 
     useEffect(() => {
-        socket.connect();
-        socket.emit("join-room", { roomId, userName });
+        socket.on('host:sendQuestion', (question) => {
+            if (question?.isEnd) {
+                setCurrentQuestion(null);
+                alert('🎉 퀴즈가 종료되었습니다.');
+                return;
+            }
 
-        socket.on("show-question", (question) => {
             setCurrentQuestion(question);
-            setAnswerSubmitted(false);
-            setRevealedAnswer(null);
+            setSelected(null);
+            setIsLocked(false);
+            setSubmitted(false);
         });
 
-        socket.on("reveal-answer", (answer) => {
-            setRevealedAnswer(answer);
+        socket.on('host:lock', () => {
+            setIsLocked(true);
         });
 
         return () => {
-            socket.disconnect();
+            socket.off('host:sendQuestion');
+            socket.off('host:lock');
         };
-    }, [roomId, userName]);
+    }, []);
 
-    const handleSubmit = (answer) => {
-        socket.emit("submit-answer", { roomId, userName, answer });
-        setAnswerSubmitted(true);
+    const handleSubmit = () => {
+        if (selected === null) {
+            alert('답을 선택해주세요.');
+            return;
+        }
+        socket.emit('player:submit', { answer: selected });
+        setSubmitted(true);
     };
 
-    if (!currentQuestion) return <div>대기 중입니다...</div>;
+    if (!currentQuestion) {
+        return <div className="p-6">🕒 대기 중... 호스트가 문제를 전송하면 시작됩니다.</div>;
+    }
 
     return (
-        <div>
-            <h2>{currentQuestion.question}</h2>
-            {currentQuestion.imageUrl && <img src={currentQuestion.imageUrl} width="200" />}
+        <div className="p-6">
+            <h2 className="text-xl font-semibold mb-2">퀴즈에 참여 중입니다 🎮</h2>
 
-            {currentQuestion.type === "multiple" && (
-                <ul>
-                    {currentQuestion.choices.map((c, i) => (
-                        <li key={i}>
-                            <button
-                                onClick={() => handleSubmit(i)}
-                                disabled={answerSubmitted || revealedAnswer !== null}
-                            >
-                                {c}
-                            </button>
+            <div className="p-4 border rounded bg-white mb-4">
+                <h3 className="text-lg font-semibold mb-2">{currentQuestion.title}</h3>
+                {currentQuestion.image && (
+                    <img src={currentQuestion.image} alt="quiz" className="mb-2 max-h-60 object-contain" />
+                )}
+                <ul className="space-y-2">
+                    {currentQuestion.choices.map((choice, idx) => (
+                        <li key={idx}>
+                            <label className="flex items-center gap-2">
+                                <input
+                                    type="radio"
+                                    name="answer"
+                                    value={choice}
+                                    disabled={isLocked || submitted}
+                                    checked={selected === choice}
+                                    onChange={() => setSelected(choice)}
+                                />
+                                {choice}
+                            </label>
                         </li>
                     ))}
                 </ul>
-            )}
+            </div>
 
-            {currentQuestion.type === "short" && !answerSubmitted && (
-                <div>
-                    <input
-                        type="text"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") handleSubmit(e.target.value);
-                        }}
-                    />
-                </div>
-            )}
-
-            {answerSubmitted && !revealedAnswer && <p>제출 완료! 정답 공개를 기다리는 중...</p>}
-            {revealedAnswer !== null && (
-                <p>
-                    정답: {currentQuestion.choices?.[revealedAnswer] || revealedAnswer}
-                </p>
+            {!isLocked ? (
+                <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    disabled={submitted}
+                    onClick={handleSubmit}
+                >
+                    ✅ 정답 제출
+                </button>
+            ) : (
+                <p className="text-red-600 font-semibold">⏱ 정답 제출이 마감되었습니다.</p>
             )}
         </div>
     );
-}
+};
 
 export default PlayerPage;
