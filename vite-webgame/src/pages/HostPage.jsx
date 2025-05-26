@@ -2,12 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { fetchQuizThemes, fetchQuizData } from '../utils/s3-util.js';
 import { socket } from "../socket";
 
+
+const generateRoomId = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
+
 const HostPage = () => {
+    const [roomId, setRoomId] = useState('');
     const [themes, setThemes] = useState([]);
     const [selectedTheme, setSelectedTheme] = useState(null);
     const [quizData, setQuizData] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLocked, setIsLocked] = useState(false);
+
+    useEffect(() => {
+        const id = generateRoomId();
+        setRoomId(id);
+        socket.emit('join_room', id);
+    }, []);
 
     useEffect(() => {
         fetchQuizThemes().then(setThemes).catch(console.error);
@@ -19,14 +32,12 @@ const HostPage = () => {
         setQuizData(data);
         setCurrentIndex(0);
         setIsLocked(false);
-
-        // 첫 문제 전송
-        socket.emit('host:sendQuestion', data.questions[0]);
+        socket.emit('host:sendQuestion', { roomId, question: data.questions[0] });
     };
 
     const handleLockAnswer = () => {
         setIsLocked(true);
-        socket.emit('host:lock');
+        socket.emit('host:lock', { roomId });
     };
 
     const handleNextQuestion = () => {
@@ -34,10 +45,9 @@ const HostPage = () => {
         if (quizData && nextIndex < quizData.questions.length) {
             setCurrentIndex(nextIndex);
             setIsLocked(false);
-            socket.emit('host:sendQuestion', quizData.questions[nextIndex]);
+            socket.emit('host:sendQuestion', { roomId, question: quizData.questions[nextIndex] });
         } else {
-            // 퀴즈 끝
-            socket.emit('host:sendQuestion', { isEnd: true });
+            socket.emit('host:sendQuestion', { roomId, question: { isEnd: true } });
         }
     };
 
@@ -45,6 +55,7 @@ const HostPage = () => {
         return (
             <div className="p-6">
                 <h2 className="text-xl mb-4 font-semibold">🎯 퀴즈 테마를 선택하세요</h2>
+                <p className="mb-2 text-gray-700">방 ID: <span className="font-mono bg-gray-200 px-2 py-1 rounded">{roomId}</span></p>
                 <ul className="space-y-2">
                     {themes.map((themeFile) => (
                         <li key={themeFile}>
@@ -66,6 +77,7 @@ const HostPage = () => {
     return (
         <div className="p-6">
             <h2 className="text-xl font-bold mb-2">{selectedTheme.replace('.json', '')}</h2>
+            <p className="mb-1">방 ID: <span className="font-mono bg-gray-200 px-2 py-1 rounded">{roomId}</span></p>
             <p className="mb-4">문제 {currentIndex + 1} / {quizData.questions.length}</p>
 
             <div className="p-4 border rounded bg-white mb-4">
