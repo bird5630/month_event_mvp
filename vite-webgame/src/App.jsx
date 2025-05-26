@@ -1,53 +1,52 @@
 import { useState } from "react";
-import GameRoom from "./GameRoom";
-import AdminPage from "./pages/AdminPage";
+import AdminPage from "./pages/AdminPage.jsx";
+import HostPage from "./pages/HostPage.jsx";
+import PlayerPage from "./pages/PlayerPage.jsx";
 
+const App = () => {
+  const [role, setRole] = useState(null);
+  const [roomId, setRoomId] = useState('');
+  const [playerName, setPlayerName] = useState('');
 
-function App() {
-  const [roomId, setRoomId] = useState("");
-  const [isHost, setIsHost] = useState(false);
-  const [userName, setUserName] = useState("");
-  const [stage, setStage] = useState("lobby"); // "lobby" | "room" | "admin"
-
-  const askUserName = () => {
-    const name = prompt("이름을 입력하세요") || "익명";
-    setUserName(name);
-  };
-
-  const handleCreateRoom = () => {
-    const id = Math.random().toString(36).substr(2, 5);
-    setRoomId(id);
-    setIsHost(true);
-    askUserName();
-    setStage("room");
-  };
-
-  const handleJoinRoom = () => {
-    const id = prompt("참여할 방 ID를 입력하세요");
-    if (id) {
-      setRoomId(id);
-      setIsHost(false);
-      askUserName();
-      setStage("room");
+  const handleSelectRole = (selectedRole) => {
+    if (selectedRole === 'player') {
+      const inputRoomId = prompt('참여할 방 ID를 입력하세요:');
+      if (!inputRoomId) return;
+      const inputName = prompt('플레이어 이름을 입력하세요:');
+      if (!inputName) return;
+      setRoomId(inputRoomId.trim());
+      setPlayerName(inputName.trim());
     }
+    setRole(selectedRole);
   };
+
+  if (role === 'host') return <HostPage />;
+  if (role === 'player') return <PlayerPage roomId={roomId} playerName={playerName} />;
+  if (role === 'admin') return <AdminPage />;
 
   return (
-      <div>
-        {stage === "lobby" && (
-            <>
-              <h1>월례회 게임 시작</h1>
-              <button onClick={handleCreateRoom}>방 만들기</button>
-              <button onClick={handleJoinRoom}>방 참가하기</button>
-              <button onClick={() => setStage("admin")}>🔧 Admin 페이지</button>
-            </>
-        )}
-        {stage === "room" && (
-            <GameRoom roomId={roomId} isHost={isHost} userName={userName} />
-        )}
-        {stage === "admin" && <AdminPage />}
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <h2 className="text-2xl font-semibold">역할을 선택하세요</h2>
+        <button
+            onClick={() => handleSelectRole('host')}
+            className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          👑 호스트로 입장
+        </button>
+        <button
+            onClick={() => handleSelectRole('player')}
+            className="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          🙋 플레이어로 참여
+        </button>
+        <button
+            onClick={() => handleSelectRole('admin')}
+            className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700"
+        >
+          🛠️ 관리자 페이지
+        </button>
       </div>
   );
-}
+};
 
 export default App;

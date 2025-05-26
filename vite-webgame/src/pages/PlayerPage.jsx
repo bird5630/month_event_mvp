@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { socket } from "../socket";
-
-const PlayerPage = () => {
-    const [roomId, setRoomId] = useState('');
+const PlayerPage = ({ roomId: initialRoomId, playerName: initialPlayerName }) => {
+    const [roomId, setRoomId] = useState(initialRoomId || '');
+    const [playerName, setPlayerName] = useState(initialPlayerName || '');
     const [joined, setJoined] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState(null);
     const [selected, setSelected] = useState(null);
@@ -10,33 +10,45 @@ const PlayerPage = () => {
     const [submitted, setSubmitted] = useState(false);
 
     const handleJoinRoom = () => {
-        if (!roomId) return alert('방 ID를 입력하세요.');
-        socket.emit('join_room', roomId.trim());
+        if (!roomId.trim() || !playerName.trim()) {
+            alert('방 ID와 플레이어 이름을 입력하세요.');
+            return;
+        }
+        socket.emit('join_room', { roomId: roomId.trim(), playerName: playerName.trim() });
         setJoined(true);
     };
 
-    useEffect(() => {
-        socket.on('host:sendQuestion', ({ question }) => {
-            if (question?.isEnd) {
-                alert('퀴즈가 종료되었습니다.');
-                setCurrentQuestion(null);
-                return;
-            }
-            setCurrentQuestion(question);
-            setSelected(null);
-            setIsLocked(false);
-            setSubmitted(false);
-        });
+    const handleSendQuestion = useCallback(({ question }) => {
+        if (question?.isEnd) {
+            alert('퀴즈가 종료되었습니다.');
+            setCurrentQuestion(null);
+            return;
+        }
 
-        socket.on('host:lock', () => {
-            setIsLocked(true);
-        });
+        setCurrentQuestion(question);
+        setSelected(null);
+        setIsLocked(false);
+        setSubmitted(false);
+    }, []);
+
+    const handleLock = useCallback(() => {
+        setIsLocked(true);
+    }, []);
+
+    useEffect(() => {
+        if (initialRoomId && initialPlayerName) {
+            socket.emit('join_room', { roomId: initialRoomId, playerName: initialPlayerName });
+            setJoined(true);
+        }
+
+        socket.on('host:sendQuestion', handleSendQuestion);
+        socket.on('host:lock', handleLock);
 
         return () => {
-            socket.off('host:sendQuestion');
-            socket.off('host:lock');
+            socket.off('host:sendQuestion', handleSendQuestion);
+            socket.off('host:lock', handleLock);
         };
-    }, []);
+    }, [initialRoomId, initialPlayerName, handleSendQuestion, handleLock]);
 
     const handleSubmit = () => {
         if (!selected) return alert('정답을 선택하세요.');
@@ -53,6 +65,13 @@ const PlayerPage = () => {
                     value={roomId}
                     onChange={(e) => setRoomId(e.target.value)}
                     placeholder="방 ID 입력"
+                    className="px-3 py-2 border rounded mr-2"
+                />
+                <input
+                    type="text"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    placeholder="플레이어 이름 입력"
                     className="px-3 py-2 border rounded mr-2"
                 />
                 <button
