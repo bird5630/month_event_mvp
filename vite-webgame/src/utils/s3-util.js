@@ -15,8 +15,7 @@ export const uploadImageToS3 = async (file) => {
     const res = await fetch(url, {
         method: "PUT",
         headers: {
-            "Content-Type": file.type || "application/octet-stream",
-            "x-amz-acl": "public-read",
+            "Content-Type": file.type || "application/octet-stream"
         },
         body: file,
     });
@@ -31,15 +30,28 @@ export const uploadImageToS3 = async (file) => {
 };
 
 /**
- * S3에서 퀴즈 테마 목록(index.json)을 가져옵니다.
- * @returns {Promise<string[]>}
+ * S3에서 퀴즈 테마 목록을 가져옵니다.
+ *
  */
 export const fetchQuizThemes = async () => {
-    const res = await fetch(`${BASE_URL}/quiz-themes/index.json`);
+    const res = await fetch(
+        'https://gothamkiller-bucket.s3.ap-northeast-2.amazonaws.com/?list-type=2&prefix=quiz-themes/'
+    );
+
     if (!res.ok) {
-        throw new Error("퀴즈 테마 목록을 불러올 수 없습니다.");
+        throw new Error('S3에서 퀴즈 목록을 불러올 수 없습니다.');
     }
-    return res.json();
+
+    const xmlText = await res.text();
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlText, 'application/xml');
+    const keys = Array.from(xml.getElementsByTagName('Key'));
+
+    // 디렉토리 제외하고 .json 파일만 필터링
+    return keys
+        .map((el) => el.textContent)
+        .filter((key) => key.endsWith('.json') && !key.endsWith('index.json')) // index.json 무시
+        .map((fullPath) => fullPath.replace('quiz-themes/', ''));
 };
 
 /**

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import HostPage from './HostPage';
-import PlayerPage from './PlayerPage';
-
+import HostPage from './pages/HostPage.jsx';
+import PlayerPage from './pages/PlayerPage.jsx';
 const GameRoom = () => {
     const [role, setRole] = useState(null); // 'host' | 'player' | null
 

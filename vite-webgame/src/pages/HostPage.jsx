@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchQuizThemes, fetchQuizData } from '@/utils/s3-util';
-import { socket } from '@/socket';
+import { fetchQuizThemes, fetchQuizData } from '../utils/s3-util.js';
+import { socket } from "../socket";
 
 const HostPage = () => {
     const [themes, setThemes] = useState([]);

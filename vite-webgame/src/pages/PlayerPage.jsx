@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { socket } from '@/socket';
+import { socket } from "../socket";
 
 const PlayerPage = () => {
     const [currentQuestion, setCurrentQuestion] = useState(null);
