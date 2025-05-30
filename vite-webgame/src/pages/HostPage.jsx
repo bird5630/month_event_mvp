@@ -19,7 +19,8 @@ const HostPage = () => {
     useEffect(() => {
         const id = generateRoomId();
         setRoomId(id);
-        socket.emit('join_room', id);
+        socket.emit('join_room', {roomId:roomId.trim(), playerName:`${roomId}_host`});
+        
     }, []);
 
     useEffect(() => {
@@ -32,7 +33,11 @@ const HostPage = () => {
         setQuizData(data);
         setCurrentIndex(0);
         setIsLocked(false);
-        socket.emit('host:sendQuestion', { roomId, question: data.questions[0] });
+        //socket.emit('host:sendQuestion', { roomId, question: data.questions[0] });
+        console.log("quiz data: ", data);
+        socket.emit("host:start_quiz", {roomId, quizData:data});
+
+
     };
 
     const handleLockAnswer = () => {

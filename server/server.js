@@ -40,16 +40,18 @@ io.on('connection', (socket) => {
   });
 
   // 호스트가 퀴즈 시작
-  socket.on('host:start_quiz', ({ roomId, questions }) => {
+  socket.on('host:start_quiz', ({ roomId, quizData }) => {
     const room = rooms[roomId];
     if (!room) return;
 
+    console.log("room : ", room);
+    console.log("quizData : ", quizData);
     room.hostId = socket.id;
     room.questions = questions;
     room.currentIndex = 0;
     room.locked = false;
 
-    const firstQuestion = questions[0];
+    const firstQuestion = room.quizData.questions[0];
     if (firstQuestion) {
       firstQuestion.isEnd = false; // 명시적으로 설정
       io.to(roomId).emit('host:sendQuestion', { question: firstQuestion });
@@ -65,7 +67,7 @@ io.on('connection', (socket) => {
     room.currentIndex += 1;
     room.locked = false;
 
-    const nextQuestion = room.questions[room.currentIndex];
+    const nextQuestion = room.quizData.questions[room.currentIndex];
     if (nextQuestion) {
       nextQuestion.isEnd = false; // 명시적으로 설정
       io.to(roomId).emit('host:sendQuestion', { question: nextQuestion });
