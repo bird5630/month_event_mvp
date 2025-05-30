@@ -1,14 +1,29 @@
+const express = require('express');
+const { createServer } = require('http');
 const { Server } = require('socket.io');
+const cors = require('cors');
 
-const io = new Server(3001, {
+const app = express();
+const httpServer = createServer(app); // ← express 기반 http 서버 생성
+
+const io = new Server(httpServer, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
+    origin: '*', // 또는 정확한 github.dev 도메인
+    methods: ['GET', 'POST']
+  }
 });
 
-// 방 정보를 저장할 객체
-const rooms = {};
+const rooms = {}
+
+// Socket 이벤트
+io.on('connection', (socket) => {
+  console.log('🔥 클라이언트 연결됨:', socket.id);
+});
+
+const PORT = 3001;
+httpServer.listen(PORT, () => {
+  console.log(`✅ 서버가 http://localhost:${PORT} 에서 실행 중`);
+});
 
 io.on('connection', (socket) => {
   console.log(`🔌 연결됨: ${socket.id}`);
@@ -47,7 +62,7 @@ io.on('connection', (socket) => {
     console.log("room : ", room);
     console.log("quizData : ", quizData);
     room.hostId = socket.id;
-    room.questions = questions;
+    room.quizData = quizData;
     room.currentIndex = 0;
     room.locked = false;
 
